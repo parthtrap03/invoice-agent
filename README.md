@@ -22,9 +22,8 @@ produces the same decision and every flag can be explained in an audit.
 | **Decide** | Weighted risk score (0–100) → `AUTO_APPROVE` / `REVIEW_REQUIRED` / `REJECT`, opening a pending approval when a human is needed |
 | **Explain** | Every run is persisted as an `AgentRun` with per-step timings and outputs, plus audit rows for each action |
 
-Also included: a database-backed finance Q&A endpoint (deterministic SQL aggregations
-with BM25 policy-document search), a policy-document ingestion pipeline, and an
-approval → payment flow.
+Also included: an approval → payment flow, and a policy-document ingestion pipeline
+that splits a real policy PDF into a searchable library at `/api/policies`.
 
 ## Risk model
 
@@ -86,9 +85,9 @@ The Vendors and Purchase Orders pages show the master data these checks run agai
 pytest
 ```
 
-34 tests covering the rules engine (one per decision path), field extraction against
-real third-party invoice PDFs, the traced orchestrator, database file storage, policy
-ingestion, and the finance Q&A layer.
+29 tests covering the rules engine (one per decision path), field extraction against
+real third-party invoice PDFs, the traced orchestrator, database file storage, and
+policy ingestion.
 
 ## Deployment
 
@@ -117,7 +116,7 @@ backend/
   models/      SQLAlchemy models
   schemas/     Pydantic request/response models
   rules/       deterministic rules engine (tax, PO, duplicates, vendor, risk)
-  services/    extraction, orchestration, file storage, finance Q&A, policies
+  services/    extraction, orchestration, file storage, policy ingestion
   seed.py      demo master data
 frontend/      React + TypeScript UI
 tests/         pytest suite

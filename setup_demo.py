@@ -10,7 +10,7 @@ What it does:
   2. Creates tables and seeds ONLY what the demo needs:
        - 4 vendors (one inactive) with tax IDs
        - 2 ACTIVE purchase orders that match the demo invoices
-       - the UNFPA policy document (for finance Q&A), if downloaded
+       - the UNFPA policy document into the policy library, if downloaded
   3. Generates 5 realistic invoice PDFs into uploads/demo/, each crafted to
      exercise a different rules-engine outcome:
        01 -> AUTO_APPROVE      (clean, PO match, 18% GST, < Rs.10L)
@@ -119,9 +119,9 @@ async def main() -> None:
 
         async with async_sessionmaker_factory() as db:
             created = await ingest_policy_document(db, UNFPA_POLICY, category="Accounts Payable")
-        print(f"[3/4] Ingested UNFPA policy document ({len(created)} sections) for finance Q&A")
+        print(f"[3/4] Ingested UNFPA policy document ({len(created)} sections) into the policy library")
     else:
-        print("[3/4] UNFPA policy PDF not found - skipped (Q&A policy search will be empty)")
+        print("[3/4] UNFPA policy PDF not found - skipped")
 
     os.makedirs(OUT_DIR, exist_ok=True)
     make_invoice_pdf(

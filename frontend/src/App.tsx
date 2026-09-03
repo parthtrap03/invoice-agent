@@ -4,7 +4,6 @@ import {
   FileText,
   Upload,
   CheckCircle,
-  MessageSquare,
   Building2,
   ShoppingCart,
 } from 'lucide-react';
@@ -13,7 +12,6 @@ import InvoiceListPage from './pages/InvoiceListPage';
 import InvoiceDetailPage from './pages/InvoiceDetailPage';
 import UploadPage from './pages/UploadPage';
 import ApprovalCenterPage from './pages/ApprovalCenterPage';
-import FinanceAnalystPage from './pages/FinanceAnalystPage';
 import VendorsPage from './pages/VendorsPage';
 import PurchaseOrdersPage from './pages/PurchaseOrdersPage';
 
@@ -22,7 +20,6 @@ const navItems = [
   { to: '/invoices', icon: FileText, label: 'Invoices' },
   { to: '/upload', icon: Upload, label: 'Upload' },
   { to: '/approvals', icon: CheckCircle, label: 'Approvals' },
-  { to: '/analyst', icon: MessageSquare, label: 'Analyst' },
   { to: '/vendors', icon: Building2, label: 'Vendors' },
   { to: '/purchase-orders', icon: ShoppingCart, label: 'POs' },
 ];
@@ -68,7 +65,6 @@ export default function App() {
           <Route path="/invoices/:id" element={<InvoiceDetailPage />} />
           <Route path="/upload" element={<UploadPage />} />
           <Route path="/approvals" element={<ApprovalCenterPage />} />
-          <Route path="/analyst" element={<FinanceAnalystPage />} />
           <Route path="/vendors" element={<VendorsPage />} />
           <Route path="/purchase-orders" element={<PurchaseOrdersPage />} />
         </Routes>

@@ -2,12 +2,10 @@ from __future__ import annotations
 
 """Free local LLM integration via Ollama (optional, zero-cost).
 
-If Ollama (https://ollama.com) is running locally, the app uses it for:
-  - natural-language rephrasing of finance Q&A answers
-  - vision extraction of scanned invoice images (with a vision model)
-
-If Ollama is not installed/running, every helper degrades gracefully and the
-system stays fully deterministic - nothing breaks, no API keys, no cost.
+If Ollama (https://ollama.com) is running locally with a vision model, it is
+used to read scanned invoice images; otherwise extraction falls back to local
+OCR. Every helper degrades gracefully when Ollama is absent - nothing breaks,
+no API keys, no cost.
 """
 
 import base64
@@ -103,21 +101,3 @@ def get_local_llm() -> OllamaLLM:
     if _llm is None:
         _llm = OllamaLLM()
     return _llm
-
-
-async def rephrase_answer(question: str, deterministic_answer: str, data: Any) -> Optional[str]:
-    """Ask the local LLM to phrase the exact computed numbers naturally.
-    Returns None when no local LLM is available (caller keeps the original)."""
-    llm = get_local_llm()
-    prompt = (
-        "You are a finance assistant. Rephrase the following computed answer "
-        "into one or two natural, friendly sentences. You MUST keep every "
-        "number and currency amount EXACTLY as given - never recompute or "
-        "round. Do not add information.\n\n"
-        f"User question: {question}\n"
-        f"Computed answer: {deterministic_answer}\n"
-        f"Supporting data: {json.dumps(data, default=str)[:1500]}\n\n"
-        "Rephrased answer:"
-    )
-    result = await llm.generate(prompt)
-    return result.strip() if result else None

@@ -6,7 +6,6 @@ import type {
   PurchaseOrder,
   Approval,
   DashboardMetrics,
-  FinanceQueryResponse,
 } from '../types';
 
 const BASE = '/api';
@@ -67,11 +66,4 @@ export const api = {
 
   // Metrics
   getMetrics: () => request<DashboardMetrics>('/metrics'),
-
-  // Finance Analyst
-  queryFinance: (question: string) =>
-    request<FinanceQueryResponse>('/finance/query', {
-      method: 'POST',
-      body: JSON.stringify({ question }),
-    }),
 };

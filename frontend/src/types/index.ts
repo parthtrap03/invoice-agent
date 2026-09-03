@@ -152,13 +152,3 @@ export interface DashboardMetrics {
   pending_approvals: number;
   automation_rate: number;
 }
-
-// ---- Finance ----
-export interface FinanceQueryResponse {
-  answer: string;
-  sql_query: string | null;
-  data: Record<string, unknown>[] | null;
-  tools_used: string[];
-  sources: string[];
-  trace_id: string | null;
-}

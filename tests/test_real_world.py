@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-"""Phase 5 tests: real downloaded invoices, policy document ingestion,
-finance Q&A, and the approval -> payment flow."""
+"""Real-world tests: third-party invoice PDFs, policy document ingestion,
+and the approval -> payment flow."""
 
 import os
 
@@ -11,7 +11,6 @@ from sqlalchemy import select
 from backend.api.approvals import approve_request
 from backend.models import Audit, Payment, Policy
 from backend.services.extraction_service import PDFTextExtractor
-from backend.services.finance_service import answer_finance_query
 from backend.services.policy_service import ingest_policy_document, split_policy_sections
 from tests.conftest import make_invoice, make_vendor, persist
 
@@ -87,48 +86,6 @@ async def test_ingest_real_policy_document(db):
     created2 = await ingest_policy_document(db, UNFPA_POLICY, category="Accounts Payable")
     total = (await db.execute(select(Policy))).scalars().all()
     assert len(total) == len(created2)
-
-
-# ---------------------------------------------------------------------------
-# Finance Q&A (deterministic, database-backed)
-# ---------------------------------------------------------------------------
-async def test_finance_query_total_spend(db):
-    vendor = make_vendor("SpendCo")
-    inv1, items1 = make_invoice(vendor, "INV-SP-1", "100000.00", "18000.00", "118000.00")
-    inv1.status = "APPROVED"
-    inv2, items2 = make_invoice(vendor, "INV-SP-2", "50000.00", "9000.00", "59000.00")
-    inv2.status = "APPROVED"
-    inv3, items3 = make_invoice(vendor, "INV-SP-3", "999.00", "179.82", "1178.82")
-    inv3.status = "REJECTED"  # not counted
-    await persist(db, vendor, inv1, inv2, inv3)
-
-    result = await answer_finance_query(db, "How much have we spent in total?")
-    assert result.data[0]["invoice_count"] == 2
-    assert result.data[0]["total_spend"] == 177000.0
-    assert "₹177,000.00" in result.answer
-
-
-async def test_finance_query_policies(db):
-    db.add(Policy(
-        policy_code="POL-TEST-01", title="Duplicate Invoice Detection",
-        category="Finance", content="Duplicate invoices must be rejected automatically.",
-        version="1.0", is_active=True,
-    ))
-    await db.commit()
-
-    result = await answer_finance_query(db, "what is our duplicate invoice policy?")
-    assert result.data and result.data[0]["policy_code"] == "POL-TEST-01"
-    assert "policy_search" in result.tools_used
-
-
-async def test_finance_query_status_breakdown(db):
-    vendor = make_vendor("StatusCo")
-    inv, _ = make_invoice(vendor, "INV-ST-1", "1000.00", "180.00", "1180.00")
-    inv.status = "APPROVED"
-    await persist(db, vendor, inv)
-
-    result = await answer_finance_query(db, "give me the invoice status breakdown")
-    assert any(d["status"] == "APPROVED" and d["count"] == 1 for d in result.data)
 
 
 # ---------------------------------------------------------------------------

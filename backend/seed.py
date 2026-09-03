@@ -13,7 +13,7 @@ from backend.models import Policy, PurchaseOrder, PurchaseOrderItem, Vendor
 
 Deliberately small and deterministic: four vendors (one inactive), two active
 purchase orders that the demo invoices in uploads/demo/ match against, and the
-company policy library used by the finance Q&A search.
+company policy library exposed at /api/policies.
 
 Invoices are NOT seeded - they are meant to be uploaded through the app so the
 extraction and rules pipeline runs for real.

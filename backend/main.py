@@ -1,5 +1,5 @@
 from __future__ import annotations
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -11,7 +11,7 @@ from backend.database import init_db, async_sessionmaker_factory
 from backend.seed import seed_database
 from backend.schemas.common import HealthResponse
 
-from backend.api import invoices, vendors, purchase_orders, approvals, metrics, audit, agent_runs, finance, policies
+from backend.api import invoices, vendors, purchase_orders, approvals, metrics, audit, agent_runs, policies
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -51,7 +51,6 @@ app.include_router(approvals.router)
 app.include_router(metrics.router)
 app.include_router(audit.router)
 app.include_router(agent_runs.router)
-app.include_router(finance.router)
 app.include_router(policies.router)
 
 @app.get("/api/health", response_model=HealthResponse)
@@ -80,13 +79,16 @@ FRONTEND_DIST = PROJECT_ROOT / "frontend" / "dist"
 if FRONTEND_DIST.is_dir():
     app.mount("/assets", StaticFiles(directory=FRONTEND_DIST / "assets"), name="assets")
 
-    @app.get("/{full_path:path}", include_in_schema=False)
-    async def serve_spa(full_path: str):
-        """Serve static files, falling back to index.html so client-side
-        routes (/invoices/<id>, /approvals, ...) work on a hard refresh."""
-        if full_path.startswith("api/"):
-            raise HTTPException(status_code=404, detail="Not found")
-        candidate = FRONTEND_DIST / full_path
-        if full_path and candidate.is_file():
-            return FileResponse(candidate)
-        return FileResponse(FRONTEND_DIST / "index.html")
+    @app.middleware("http")
+    async def spa_fallback(request: Request, call_next):
+        """Serve index.html for unmatched non-API paths so client-side routes
+        (/invoices/<id>, /approvals, ...) survive a hard refresh.
+
+        Implemented as a middleware rather than a catch-all route so it never
+        shadows the API - a catch-all would also swallow FastAPI's redirect
+        from '/api/invoices' to '/api/invoices/'.
+        """
+        response = await call_next(request)
+        if response.status_code == 404 and not request.url.path.startswith("/api"):
+            return FileResponse(FRONTEND_DIST / "index.html")
+        return response
