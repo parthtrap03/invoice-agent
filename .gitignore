@@ -1,0 +1,20 @@
+# Python
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Environment / secrets
+.env
+
+# Local database (recreated on startup with demo seed data)
+*.db
+*.db-journal
+
+# Frontend
+node_modules/
+dist/
+
+# OS / editor
+.DS_Store
+Thumbs.db
