@@ -22,8 +22,8 @@ produces the same decision and every flag can be explained in an audit.
 | **Decide** | Weighted risk score (0–100) → `AUTO_APPROVE` / `REVIEW_REQUIRED` / `REJECT`, opening a pending approval when a human is needed |
 | **Explain** | Every run is persisted as an `AgentRun` with per-step timings and outputs, plus audit rows for each action |
 
-Also included: an approval → payment flow, and a policy-document ingestion pipeline
-that splits a real policy PDF into a searchable library at `/api/policies`.
+Approving a flagged invoice closes the loop: the invoice is cleared and a payment
+record is initiated, both written to the audit trail.
 
 ## Risk model
 
@@ -85,9 +85,9 @@ The Vendors and Purchase Orders pages show the master data these checks run agai
 pytest
 ```
 
-29 tests covering the rules engine (one per decision path), field extraction against
-real third-party invoice PDFs, the traced orchestrator, database file storage, and
-policy ingestion.
+Tests cover the rules engine (one per decision path), field extraction against every
+demo PDF, the traced orchestrator, database-backed file storage, and the
+approval → payment flow.
 
 ## Deployment
 
@@ -116,7 +116,7 @@ backend/
   models/      SQLAlchemy models
   schemas/     Pydantic request/response models
   rules/       deterministic rules engine (tax, PO, duplicates, vendor, risk)
-  services/    extraction, orchestration, file storage, policy ingestion
+  services/    extraction, orchestration, file storage
   seed.py      demo master data
 frontend/      React + TypeScript UI
 tests/         pytest suite
@@ -133,6 +133,6 @@ setup_demo.py  reset database + regenerate demo PDFs
   duplicates an open approval.
 - **Storage is abstracted.** `source_file_key` is a `db://<id>` key, so swapping in S3
   later is a change in one service module.
-- **Thresholds live in config, not in prose.** Policy documents are searchable
-  knowledge, but enforcement values are explicit configuration — a parsed PDF should
-  never be able to change what gets approved.
+- **Thresholds live in one config module.** Every limit — approval ceiling, variance
+  tolerance, GST rate, risk weights — is declared in `rules/config.py` and
+  environment-overridable, so the rules read as policy rather than scattered constants.

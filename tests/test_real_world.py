@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-"""Real-world tests: third-party invoice PDFs, policy document ingestion,
-and the approval -> payment flow."""
+"""End-to-end tests against the shipped demo invoices, plus the
+approval -> payment flow."""
 
 import os
 
@@ -9,91 +9,63 @@ import pytest
 from sqlalchemy import select
 
 from backend.api.approvals import approve_request
-from backend.models import Audit, Payment, Policy
+from backend.models import Approval, Audit, Payment
 from backend.services.extraction_service import PDFTextExtractor
-from backend.services.policy_service import ingest_policy_document, split_policy_sections
 from tests.conftest import make_invoice, make_vendor, persist
 
-SLICED = "uploads/samples/invoice-sliced.pdf"
-CONTOSO = "uploads/samples/invoice-contoso.pdf"
-UNFPA_POLICY = "uploads/policies/unfpa-accounts-payable-policy.pdf"
+DEMO_DIR = "uploads/demo"
+
+
+def demo(name: str) -> str:
+    return os.path.join(DEMO_DIR, name)
 
 
 # ---------------------------------------------------------------------------
-# Real invoice PDFs (downloaded samples)
+# Extraction against the demo PDFs the walkthrough depends on
 # ---------------------------------------------------------------------------
-@pytest.mark.skipif(not os.path.exists(SLICED), reason="sample invoice not downloaded")
-async def test_real_invoice_sliced_extraction():
-    result = await PDFTextExtractor().extract(SLICED)
-    assert result.invoice_number == "INV-3337"
-    assert result.vendor_name == "DEMO - Sliced Invoices"
-    assert result.subtotal == 85.0
-    assert result.tax_amount == 8.5
-    assert result.total_amount == 93.5
-    assert result.currency == "USD"
-    assert result.invoice_date is not None and result.invoice_date.isoformat() == "2016-01-25"
-    assert result.payment_terms == "NET30"  # from "due within 30 days" fallback
+@pytest.mark.skipif(not os.path.isdir(DEMO_DIR), reason="run setup_demo.py first")
+async def test_demo_invoice_fields_extracted():
+    result = await PDFTextExtractor().extract(demo("02-po-variance-review.pdf"))
+
+    assert result.invoice_number == "INV-88231"
+    assert result.vendor_name == "ABC Cloud Services"
+    assert result.po_number == "PO-99182"
+    assert result.currency == "INR"
+    assert result.payment_terms == "NET30"
+    assert result.invoice_date is not None
+    assert len(result.line_items) == 1
+    assert result.line_items[0].quantity == 12
+    # 12 x 153,333.33 = 1,839,999.96, taxed at 18%
+    assert abs(result.subtotal - 1_840_000) < 1
+    assert abs(result.tax_amount - 331_200) < 1
+    assert abs(result.total_amount - 2_171_200) < 1
 
 
-@pytest.mark.skipif(not os.path.exists(CONTOSO), reason="sample invoice not downloaded")
-async def test_real_invoice_contoso_extraction():
-    result = await PDFTextExtractor().extract(CONTOSO)
-    assert result.invoice_number == "INV-100"
-    assert result.po_number == "PO-3333"
-    assert result.subtotal == 100.0
-    assert result.tax_amount == 10.0
-    assert result.total_amount == 110.0
-    assert result.invoice_date is not None and result.invoice_date.isoformat() == "2019-11-15"
+@pytest.mark.skipif(not os.path.isdir(DEMO_DIR), reason="run setup_demo.py first")
+@pytest.mark.parametrize(
+    "filename,invoice_number,gst_rate",
+    [
+        ("01-clean-auto-approve.pdf", "INV-2001", 0.18),
+        ("03-wrong-gst-review.pdf", "INV-3003", 0.05),
+        ("04-inactive-vendor-reject.pdf", "INV-4004", 0.18),
+        ("05-duplicate-reject.pdf", "INV-5005", 0.18),
+    ],
+)
+async def test_every_demo_invoice_parses(filename, invoice_number, gst_rate):
+    """Each demo scenario must extract cleanly - the walkthrough depends on it."""
+    result = await PDFTextExtractor().extract(demo(filename))
 
-
-# ---------------------------------------------------------------------------
-# Policy document ingestion
-# ---------------------------------------------------------------------------
-SYNTHETIC_POLICY = """
-ACCOUNTS PAYABLE POLICY
-
-1. PURPOSE AND SCOPE
-This policy establishes the framework for processing vendor invoices and
-ensuring timely, accurate and authorized payments across the organization.
-
-2. INVOICE APPROVAL THRESHOLDS
-All invoices exceeding the approval threshold require managerial sign-off.
-Invoices below the threshold may be auto-approved when all validations pass.
-
-3. DUPLICATE PAYMENTS
-The system must detect and prevent duplicate payments to vendors using
-exact and fuzzy matching on invoice number, amount and dates.
-"""
-
-
-def test_split_policy_sections_synthetic():
-    sections = split_policy_sections(SYNTHETIC_POLICY)
-    titles = [t for t, _ in sections]
-    assert "Purpose And Scope" in titles
-    assert "Invoice Approval Thresholds" in titles
-    assert "Duplicate Payments" in titles
-    for _, content in sections:
-        assert len(content) >= 60
-
-
-@pytest.mark.skipif(not os.path.exists(UNFPA_POLICY), reason="policy PDF not downloaded")
-async def test_ingest_real_policy_document(db):
-    created = await ingest_policy_document(db, UNFPA_POLICY, category="Accounts Payable")
-    assert len(created) >= 3
-    assert all(p.policy_code.startswith("DOC-UNFPA") for p in created)
-
-    # Re-ingesting replaces, not duplicates
-    created2 = await ingest_policy_document(db, UNFPA_POLICY, category="Accounts Payable")
-    total = (await db.execute(select(Policy))).scalars().all()
-    assert len(total) == len(created2)
+    assert result.invoice_number == invoice_number
+    assert result.vendor_name
+    assert result.subtotal and result.tax_amount and result.total_amount
+    assert abs(result.tax_amount - result.subtotal * gst_rate) < 1
+    assert abs(result.total_amount - (result.subtotal + result.tax_amount)) < 1
 
 
 # ---------------------------------------------------------------------------
 # Approval -> Payment flow
 # ---------------------------------------------------------------------------
 async def test_manual_approval_creates_payment(db):
-    from backend.models import Approval
-
     vendor = make_vendor("PayMe Ltd")
     inv, items = make_invoice(vendor, "INV-PAY-1", "200000.00", "36000.00", "236000.00")
     inv.status = "REVIEW_REQUIRED"

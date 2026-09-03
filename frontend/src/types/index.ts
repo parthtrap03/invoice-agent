@@ -101,7 +101,6 @@ export interface InvoiceDetail {
     confidence: number;
     matched_invoice: string | null;
   } | null;
-  policy_result: Record<string, unknown> | null;
   vendor_risk_result: {
     vendor: string;
     status: string;

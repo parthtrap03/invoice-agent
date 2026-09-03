@@ -79,7 +79,6 @@ async def get_invoice_detail(invoice_id: UUID, db: AsyncSession = Depends(get_db
         validation_result=inv.validation_result,
         po_match_result=inv.po_match_result,
         duplicate_result=inv.duplicate_result,
-        policy_result=inv.policy_result,
         vendor_risk_result=inv.vendor_risk_result,
         decision_result=inv.decision_result,
         source_file_key=inv.source_file_key,
@@ -187,7 +186,6 @@ async def get_invoice_analysis(invoice_id: UUID, db: AsyncSession = Depends(get_
         "validation_result": inv.validation_result,
         "po_match_result": inv.po_match_result,
         "duplicate_result": inv.duplicate_result,
-        "policy_result": inv.policy_result,
         "vendor_risk_result": inv.vendor_risk_result,
         "decision_result": inv.decision_result
     }

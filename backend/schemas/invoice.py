@@ -45,7 +45,6 @@ class InvoiceDetailResponse(BaseSchema):
     validation_result: Optional[dict[str, Any]] = None
     po_match_result: Optional[dict[str, Any]] = None
     duplicate_result: Optional[dict[str, Any]] = None
-    policy_result: Optional[dict[str, Any]] = None
     vendor_risk_result: Optional[dict[str, Any]] = None
     decision_result: Optional[dict[str, Any]] = None
     source_file_key: Optional[str] = None

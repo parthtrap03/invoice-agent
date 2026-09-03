@@ -4,7 +4,6 @@ from .base import Base, TimestampMixin
 from .vendor import Vendor
 from .purchase_order import PurchaseOrder, PurchaseOrderItem
 from .invoice import Invoice, InvoiceItem, InvoiceMatch
-from .policy import Policy
 from .approval import Approval
 from .payment import Payment
 from .agent import AgentRun, AgentStep
@@ -20,7 +19,6 @@ __all__ = [
     "Invoice",
     "InvoiceItem",
     "InvoiceMatch",
-    "Policy",
     "Approval",
     "Payment",
     "AgentRun",

@@ -7,10 +7,9 @@ Usage:
 
 What it does:
   1. Deletes finance_agent.db (fresh start)
-  2. Creates tables and seeds ONLY what the demo needs:
+  2. Creates tables and seeds the demo master data:
        - 4 vendors (one inactive) with tax IDs
        - 2 ACTIVE purchase orders that match the demo invoices
-       - the UNFPA policy document into the policy library, if downloaded
   3. Generates 5 realistic invoice PDFs into uploads/demo/, each crafted to
      exercise a different rules-engine outcome:
        01 -> AUTO_APPROVE      (clean, PO match, 18% GST, < Rs.10L)
@@ -18,20 +17,14 @@ What it does:
        03 -> REVIEW_REQUIRED   (5% GST instead of 18%)
        04 -> REJECT            (inactive vendor)
        05 -> REJECT            (upload TWICE - duplicate detection)
-
-Because vendors exist afterwards, the app's startup seeder skips its random
-demo data - the database stays clean for the walkthrough.
 """
 
 import asyncio
 import os
 from datetime import date, timedelta
-from decimal import Decimal
-from uuid import uuid4
 
 DB_FILE = "finance_agent.db"
 OUT_DIR = os.path.join("uploads", "demo")
-UNFPA_POLICY = os.path.join("uploads", "policies", "unfpa-accounts-payable-policy.pdf")
 
 TODAY = date.today()
 DUE = TODAY + timedelta(days=30)
@@ -96,15 +89,12 @@ def make_invoice_pdf(
 
 
 # ---------------------------------------------------------------------------
-# Database seed (vendors + POs only)
-# ---------------------------------------------------------------------------
-# ---------------------------------------------------------------------------
 async def main() -> None:
     if os.path.exists(DB_FILE):
         os.remove(DB_FILE)
-        print(f"[1/4] Deleted {DB_FILE}")
+        print(f"[1/3] Deleted {DB_FILE}")
     else:
-        print(f"[1/4] No existing {DB_FILE}")
+        print(f"[1/3] No existing {DB_FILE}")
 
     from backend.database import async_sessionmaker_factory, init_db
     from backend.seed import seed_database
@@ -112,16 +102,7 @@ async def main() -> None:
     await init_db()
     async with async_sessionmaker_factory() as db:
         await seed_database(db)
-    print("[2/4] Seeded 4 vendors + 2 purchase orders + 20 policies")
-
-    if os.path.exists(UNFPA_POLICY):
-        from backend.services.policy_service import ingest_policy_document
-
-        async with async_sessionmaker_factory() as db:
-            created = await ingest_policy_document(db, UNFPA_POLICY, category="Accounts Payable")
-        print(f"[3/4] Ingested UNFPA policy document ({len(created)} sections) into the policy library")
-    else:
-        print("[3/4] UNFPA policy PDF not found - skipped")
+    print("[2/3] Seeded 4 vendors + 2 purchase orders")
 
     os.makedirs(OUT_DIR, exist_ok=True)
     make_invoice_pdf(
@@ -154,7 +135,7 @@ async def main() -> None:
         [("Annual Support Contract", 1, 250000.00)], 0.18,
         "upload this file TWICE - second one -> REJECT (duplicate)",
     )
-    print(f"[4/4] Generated 5 demo invoice PDFs in {OUT_DIR}/")
+    print(f"[3/3] Generated 5 demo invoice PDFs in {OUT_DIR}/")
     print()
     print("Demo walkthrough (upload each via the frontend Upload page, then Process):")
     print("  01-clean-auto-approve.pdf      -> AUTO_APPROVE  (risk LOW)")

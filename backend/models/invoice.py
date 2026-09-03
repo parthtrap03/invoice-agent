@@ -44,7 +44,6 @@ class Invoice(Base, TimestampMixin):
     validation_result: Mapped[Optional[Any]] = mapped_column(JSON, nullable=True)
     po_match_result: Mapped[Optional[Any]] = mapped_column(JSON, nullable=True)
     duplicate_result: Mapped[Optional[Any]] = mapped_column(JSON, nullable=True)
-    policy_result: Mapped[Optional[Any]] = mapped_column(JSON, nullable=True)
     vendor_risk_result: Mapped[Optional[Any]] = mapped_column(JSON, nullable=True)
     decision_result: Mapped[Optional[Any]] = mapped_column(JSON, nullable=True)
     

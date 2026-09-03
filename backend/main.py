@@ -11,7 +11,7 @@ from backend.database import init_db, async_sessionmaker_factory
 from backend.seed import seed_database
 from backend.schemas.common import HealthResponse
 
-from backend.api import invoices, vendors, purchase_orders, approvals, metrics, audit, agent_runs, policies
+from backend.api import invoices, vendors, purchase_orders, approvals, metrics, audit, agent_runs
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -51,7 +51,6 @@ app.include_router(approvals.router)
 app.include_router(metrics.router)
 app.include_router(audit.router)
 app.include_router(agent_runs.router)
-app.include_router(policies.router)
 
 @app.get("/api/health", response_model=HealthResponse)
 async def health_check():
