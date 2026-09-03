@@ -88,6 +88,13 @@ if FRONTEND_DIST.is_dir():
         from '/api/invoices' to '/api/invoices/'.
         """
         response = await call_next(request)
-        if response.status_code == 404 and not request.url.path.startswith("/api"):
-            return FileResponse(FRONTEND_DIST / "index.html")
-        return response
+        if response.status_code != 404:
+            return response
+
+        path = request.url.path
+        # Never mask a real 404 behind the SPA shell: API calls and requests
+        # for a concrete file (anything with an extension) must fail honestly,
+        # or a missing asset silently downloads as index.html.
+        if path.startswith("/api") or Path(path).suffix:
+            return response
+        return FileResponse(FRONTEND_DIST / "index.html")
